@@ -1,0 +1,631 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" type="text/css" href="include/style.css">
+
+<script type="text/javascript">
+if(typeof sessionStorage.userid === "undefined") {
+	window.location="login.html";
+}
+var canvas, context, perusfont, bossfont, fontUsed, balloons; //julkiset muuttujat
+var textareas =[];
+var ovalWidth = 120, //ellipsin leveys ja korkeus, tarvitaan globaalisti
+	ovalHeight = 70.
+	ovalXPadding = 50,
+	ovalYPadding = 50;
+	
+window.onload = function initCanvas() { //kutsutaan kun canvas elementti renderöity
+	canvas = document.getElementById("tabula");
+	canvas.width = 1000;
+	canvas.height = 800;
+	context = canvas.getContext("2d");
+	perusfont = 18;
+	bossfont = 24;
+	balloons = 0;
+
+	running();
+}
+
+function running() {
+
+	//Viivojen piirtely ajatusten välille
+	function drawRelations(sx,sy,cx,cy) {
+		var okstart = false;
+		var okend = false;
+		var childIndex;
+		
+		//yksittäiset parentit vittuu. viivoja voi loputtomiin piirrellä.
+		//eli parentx ja parenty soluihin koord-arvoja putkeen merkillä eroteltuna, sitte slicee ne php:ssä jo!
+		//ei tarkistuksia tässä vaiheessa, demo vaan. eli perään vaa 
+		//textareas[i]["parentxy"]+=parentxy;
+		
+		//Käydään taulukon pallerokoordinaatit läpi
+		//Jos viivan alku- tai loppupää täsmää palleron koordinaattien kanssa,
+		//muutetaan kyseinen viivan alku- tai loppupää palleron keskipisteen koordinaateiksi
+		for(var i =0; i< textareas.length; i++) {
+			var tsx = textareas[i]["ovalx"], //palleron alkux
+				tsy = textareas[i]["ovaly"], //palleron alkuy
+				tex = tsx + textareas[i]["w"], //palleron loppux
+				tey = tsy + textareas[i]["h"]; //palleron loppuy
+			
+			//if aloituspallero mätsää koordinaatistossa
+			if(sx > tsx && sx < tex && sy > tsy && sy < tey) {
+				okstart = true;
+				sx = tsx;
+				sy = tsy;
+				linesx = sx + (textareas[i]["w"] / 2);
+				linesy = sy + (textareas[i]["h"] / 2);
+			}
+			//if lopetuspallero mätsää koordinaatistossa
+			if(cx > tsx && cx < tex && cy > tsy && cy < tey) {
+				childIndex = i; //tallennetaan lopetuspalleron indeksi
+				okend = true;
+				cx = tsx + (textareas[i]["w"] / 2);
+				cy = tsy + (textareas[i]["h"] / 2);
+			}
+		}
+		if(okstart && okend) { //jos kaikki ok, piirretään viiva
+			//tallennetaan viivakoordinaatit lopetuspalleron tietoihin DB tallennusta varten
+			if(typeof textareas[childIndex]["linecoord"] === "undefined" && typeof textareas[childIndex]["tobubble"] === "undefined") {
+				textareas[childIndex]["linecoord"] = linesx +"-"+ linesy;
+				textareas[childIndex]["tobubble"] = sx +"-"+ sy;
+			}
+			else {
+				textareas[childIndex]["linecoord"] += "|"+ linesx +"-"+ linesy;
+				textareas[childIndex]["tobubble"] += "|"+ sx +"-"+ sy;
+			}
+			//kutsutaan canvasin puhdistus ja callbackina settien uusiksi piirtäminen
+			clearCanvas(canvas.width, canvas.height, drawAll);	
+				
+		}
+	}
+	canvas.onclick = function(event) { //palleron lisäys
+		var x= event.pageX - (ovalWidth / 2),
+			y= event.pageY - (ovalHeight / 2);
+		if(!checkForPixels(x,y,ovalWidth,ovalHeight) && !mousePressed) { //onko kohdassa pallerolle tilaa
+			var canvasx = event.pageX,
+			canvasy = event.pageY;
+			
+			addBalloon(canvasx,canvasy);
+		}
+	}
+	//Hiiripainallusten kuuntelijat
+	var heldDown = 0;
+	var mousePressed = false;
+	var startX = 0;
+	var startY = 0;
+	canvas.onmousedown = function(e) { //nappi pohjassa, tarkistetaan voiko piirtää viivaa
+		heldDown = setTimeout(function(){
+			var x = e.pageX - 5;
+			var y = e.pageY - 5;
+			if(checkForPixels(x,y,10,10) ) {
+				//jos kohdassa pallero niin kutsutaan viivan piirtelyä
+				mousePressed = true;
+				startX =e.pageX,
+				startY =e.pageY;
+				
+			}
+		},250);	
+	}
+
+	canvas.onmouseup = function(e){
+		clearTimeout(heldDown);
+		if(mousePressed && checkForPixels(e.pageX,e.pageY,10,10)) {
+			drawRelations(startX,startY,e.pageX,e.pageY);
+			mousePressed=false;
+		}
+	}
+	function drawIcons(boxIndex) {
+		
+		var nodeList = Array.prototype.slice.call( document.getElementsByTagName("TEXTAREA"));
+		var iconWidth = 13,
+			iconHeight = 14,
+			deletex = nodeList[boxIndex].offsetLeft + nodeList[boxIndex].offsetWidth - iconWidth,
+			icony = nodeList[boxIndex].offsetTop - iconWidth - 5,
+			movex = deletex - iconWidth - 5;
+			
+			deleteIcon = new Image(),
+			deleteIcon.src = 'include/delete.png',
+			deleteIcon.className = "floaticon",
+			deleteIcon.setAttribute("data-index",boxIndex),
+			deleteIcon.style.top = icony+"px",
+			deleteIcon.style.left = deletex+"px",
+			deleteIcon.width = iconWidth
+			deleteIcon.height = iconHeight;
+			deleteIcon.onload = function(){
+				canvasHolder.appendChild(deleteIcon);
+				//context.drawImage(deleteIcon, deletex, icony, iconWidth,iconHeight);
+			}
+			deleteIcon.onclick = function(event){
+				deleteBubble(event);
+			}
+
+			moveIcon = new Image();
+			moveIcon.src = 'include/move.png',
+			moveIcon.className = "floaticon",
+			moveIcon.setAttribute("data-index",boxIndex),
+			moveIcon.style.top = icony+"px",
+			moveIcon.style.left = movex+"px",
+			moveIcon.width = iconWidth
+			moveIcon.height = iconHeight;
+			moveIcon.onload = function(){
+				canvasHolder.appendChild(moveIcon);
+				//context.drawImage(moveIcon, movex, icony,iconWidth,iconHeight);
+			}
+			
+			//Ajatuskuplan liikuttelu
+			var iconheld = 0;
+			var iconPresd = false;
+			//var moveicons = canvasHolder.querySelectorAll('[src="include/move.png"]');
+			moveIcon.onmousedown = function(event) {
+				event.preventDefault();
+				iconheld = setTimeout(function(){
+					iconPresd = true;
+					moveBubble(iconheld,iconPresd,event);
+				},200);	
+			}
+			
+			
+	}
+	function moveBubble(iconheld,iconPresd,event) {
+		//Liikuta ikoneita mukana (deleteiconin saat samalla data-index attrilla!)
+		var target = event && event.target || event.srcElement,
+			index = target.getAttribute("data-index"),
+			object = textareas[index]
+			nodrop = false;
+		//http://stackoverflow.com/questions/4402287/javascript-remove-event-listener
+		canvas.addEventListener('mousemove', mouseMove);
+		function mouseMove(event) {
+			console.log("mousemove");
+				//console.log(event.pageX);
+				target.style.left = event.pageX - target.width+"px";
+				target.style.top = event.pageY- target.height+"px";
+			
+		}
+		/*canvas.onmousemove = function(event) {
+			console.log(iconPresd);
+			if(iconPresd === true) {
+				//console.log(event.pageX);
+				target.style.left = event.pageX - target.width+"px";
+				target.style.top = event.pageY- target.height+"px";
+			}
+		}*/
+		function reposition(event) {
+			if(!checkForPixels(event.pageX,event.pageY,object.w,object.h)) {
+				iconPresd = false;
+				nodrop=false;
+				canvas.removeEventListener('mousemove', mouseMove);
+			}
+		}
+		target.onmouseup = canvas.onmouseup = function(event) {
+			clearTimeout(iconheld);
+			if(iconPresd === true) {
+				if(!checkForPixels(event.pageX,event.pageY,object.w,object.h)) {
+					console.log("mahtuu");
+					iconPresd = false;
+					canvas.removeEventListener('mousemove', mouseMove);
+					setBubble();
+				}
+			}
+		}
+		
+		//Muuta ajatuskuplan arvoja (textareas.ovalx,ovaly,x,y)
+		
+		//Piirretään canvasia
+		//clearCanvas(canvas.width,canvas.height,drawAll);
+
+	}
+	function setBubble() {
+		console.log("loppuu se");
+	}
+	function bubbleCheck(event) {
+		var target = event && event.target || event.srcElement,
+			index = target.getAttribute("data-index"),
+			object = textareas[index];
+		//katsotaan onko kuplalle tilaa pudotuskohdassa
+		if(!checkForPixels(event.pageX,event.pageY,object.w,object.h)) {
+			console.log("mahtuu");
+		}
+		
+		//jos ylempi false, jatka movebubblea
+	}
+	function deleteBubble(event) {
+		//Poistellaan ikonit jos ei otsikko kyseessä. Jos halutaan poistaa otsikko, sama tyhjentää koko canvas, säästyy helpommalla
+		var target = event && event.target || event.srcElement; 
+		var boxIndex = target.getAttribute("data-index");
+		
+		if(boxIndex != 0) {
+			var icons = document.querySelectorAll('[data-index="'+boxIndex+'"]');
+			icons[1].parentNode.removeChild(icons[1]);
+			icons[0].parentNode.removeChild(icons[0]);
+			var removedX = textareas[boxIndex]["ovalx"],
+				removedY = textareas[boxIndex]["ovaly"];
+			//Poistetaan textarea taulusta, indexit oikeassa järjestyksessä
+			textareas.splice(boxIndex,1);
+			//Poistetaan kirjoitusboksi
+			var textboxes = document.getElementsByTagName("TEXTAREA");
+			textboxes[boxIndex].parentNode.removeChild(textboxes[boxIndex]);
+			
+			//Poista kuplaan menneet viivasuhteet
+			for(var i=0;i<textareas.length;i++) {
+				if(typeof textareas[i]["tobubble"] != "undefined") {
+					var pairSets = textareas[i]["tobubble"].split("|");
+					var linePairs = textareas[i]["linecoord"].split("|");
+					for (var j=0;j<pairSets.length;j++) {
+						var values = pairSets[j].split("-"),
+							x = values[0],
+							y = values[1];
+						if(removedX == x && removedY == y) {
+							//hae arvo tobubblesta ja linecoordista ja poista
+							//pairSets[j]:ssä ois kivasti poistettava.
+							pairSets.splice(j,1);
+							linePairs.splice(j,1);
+							textareas[i]["tobubble"] = pairSets.join("|");
+							textareas[i]["linecoord"] = linePairs.join("|");
+						}	
+					}
+				}
+			}
+			console.log(textareas);
+			//Muutetaan jääneiden ikoneiden data-indexejä
+			var icons = document.getElementsByClassName("floaticon");
+			for(var i=0;i<icons.length;i++) {
+				var attri = icons[i].getAttribute("data-index");
+				if(attri > boxIndex)
+					icons[i].setAttribute("data-index", (attri-1));
+			}
+			
+			//Piirretään canvas uusiksi
+			clearCanvas(canvas.width,canvas.height,drawAll);
+		}
+	}
+	
+	function addBalloon(posx,posy) { 
+		if(balloons === 0) { //jos ei palleroa niin tehdään tästä otsikko
+			fontUsed = bossfont;
+			context.font = "bold "+fontUsed+"px Arial";
+		}
+		else { //perus ajatus
+			fontUsed = perusfont;
+			context.font = fontUsed+"px Arial";
+		}
+		addText(posx,posy); //kutsutaan textarean (ja palleron) lisäystä
+		
+		balloons++;
+	}
+	
+	//tallennuskäsittely
+	document.getElementById("saveMap").onclick = function() {
+		var mapJsonData = { userid: sessionStorage.userid, contents:[ ] };
+		for(var i=0;i < textareas.length;i++) {
+			var obj = {};
+				obj.name = textareas[i]["name"],
+				obj.x = textareas[i]["x"],
+				obj.y = textareas[i]["y"];
+				if(typeof textareas[i]["linecoord"] !== 'undefined') {
+					obj.linecoord = textareas[i]["linecoord"];
+				}
+			mapJsonData.contents[i] = obj;
+		}		
+		
+		 //Ajax tavaraa
+		var http = null;
+
+		if (window.XMLHttpRequest) {
+			http = new XMLHttpRequest();
+		} else {
+			http = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+		
+		var urli = "include/backend.php?mapData=" + encodeURI(JSON.stringify(mapJsonData));
+
+		http.onreadystatechange = function () { 
+			if (http.readyState == 4 && http.status == 200) {
+				console.log("vastaus:"+http.responseText);
+				if(http.responseText != "")
+					document.getElementById("saveMsg").innerHTML="<h2 class='errorMSg'>Jotain meni vikaan</h2>";
+				else
+					document.getElementById("saveMsg").innerHTML="<h2>Tallennus onnistui!</h2>";
+			}
+			else if(http.status === 404){
+				document.getElementById("saveMsg").innerHTML="<h2 class='errorMSg'>Sivua ei löytynyt!</h2>";
+			}
+		}
+		
+		http.open("GET", urli, true);
+		
+		http.send(null);
+		 
+	}
+	//tyhjennyskäsittely
+	document.getElementById("clearMap").onclick = function() {
+		context.clearRect (0,0, canvas.width, canvas.height);
+		var parentNode = document.getElementById("canvasHolder");
+		var nodeList = Array.prototype.slice.call( document.getElementsByTagName("TEXTAREA"));
+		for(var i=0;i < nodeList.length;i++) {
+			parentNode.removeChild(nodeList[i]);
+		}
+	}
+	
+	function checkForPixels(x,y,w,h) {
+		//tarkistetaan onko kohteessa palleroa (tarkistetaan vain onko valkoista, joka on pallon filliväri!)
+		// http://stackoverflow.com/questions/4644524/how-to-check-if-something-is-drawn-on-canvas
+
+		var d = context.getImageData(x, y, w, h); //image data 
+		var len     = d.data.length;
+		for(var i =0; i< len; i++) {
+			if(d.data[i] == 255 && d.data[i+1] == 255 && d.data[i+2]) { //jos valkoista (palleron fillcolor)
+				return true;
+				break;
+			}
+		}
+	}
+		
+	function clearCanvas(width,height,callback) {
+		// Store the current transformation matrix
+		context.save();
+
+		// Use the identity matrix while clearing the canvas
+		context.setTransform(1, 0, 0, 1, 0, 0);
+		context.clearRect(0, 0, width, height);
+
+		// Restore the transform
+		context.restore();
+		
+		if(callback)
+			callback(); //kutsutaan drawAll jos lisätty parametreihin
+	}
+
+	function drawAll() {
+
+		//käy läpi textareas ja piirrä jokainen viiva ja ajatuskupla
+		
+		//ensin viivat eli linecoordit läpi
+		for(var i=0;i<textareas.length;i++) {
+			if(typeof textareas[i]["linecoord"] != "undefined") {
+				var pairSets = textareas[i]["linecoord"].split("|");
+				
+				for (var j=0;j<pairSets.length;j++) {
+					var values = pairSets[j].split("-");
+					context.beginPath();
+					context.moveTo((textareas[i]["ovalx"] + (textareas[i]["w"] / 2)), (textareas[i]["ovaly"] + (textareas[i]["h"] / 2)));	
+					context.lineTo(values[0],values[1]);
+					context.stroke();
+				}		
+			}
+		}
+		for(var i=0;i<textareas.length;i++) {
+			//sitten kutsutaan drawellipsee
+			drawEllipse(context, textareas[i]["ovalx"], textareas[i]["ovaly"], textareas[i]["w"], textareas[i]["h"]); 
+
+		}
+	}
+
+	function drawEllipse(ctx, x, y, w, h) { //kiitokset tänne http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
+		var kappa = .5522848,
+		ox = (w / 2) * kappa, // control point offset horizontal
+		oy = (h / 2) * kappa, // control point offset vertical
+		xe = x + w,           // x-end
+		ye = y + h,           // y-end
+		xm = x + w / 2,       // x-middle
+		ym = y + h / 2;       // y-middle
+
+		ctx.beginPath();
+		ctx.moveTo(x, ym);
+		ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
+		ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
+		ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
+		ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+		//ctx.closePath(); // not used correctly, see comments (use to close off open path)
+		ctx.fillStyle = "white";
+		ctx.fill();
+		ctx.stroke();
+	}
+
+	function addText(mouseposx,mouseposy) { //Lisätään textarea painettuun kohtaan
+		//Yleisiä muuttujia textarealle ja hiddenBoxille
+		var textarea = document.createElement("textarea"),
+			hidden = document.getElementById("hiddenBox"),
+			hiddenMaxWidth = 340,
+			canvasHolder = document.getElementById("canvasHolder"),
+			textBoxDefW = 22,
+			lineHeight = 1.25*fontUsed,
+			hiddenMaxHeight = lineHeight * 3,
+			centeredTextBoxX = mouseposx - textBoxDefW / 2,
+			centeredTextBoxY = mouseposy - fontUsed / 2;
+		//Tyyliasettelut textarealle ja hiddenBoxille
+		textarea.style.width = textBoxDefW+"px";
+		textarea.style.minWidth = textBoxDefW+"px";
+		hidden.style.maxWidth = hiddenMaxWidth+"px";
+		hidden.style.maxHeight = hiddenMaxHeight+"px";
+		textarea.style.height = hidden.style.minHeight = lineHeight+"px";
+		textarea.style.font = hidden.style.font = context.font;
+		textarea.style.left = centeredTextBoxX+"px";
+		textarea.style.top = centeredTextBoxY+"px";
+		textarea.style.border = "thin solid #cecece";
+		
+		//ellipsimuuttujia
+			ovalWidth = 120,
+			ovalHeight = lineHeight + 50,
+			ovalposx = mouseposx - ovalWidth / 2,
+			ovalposy = mouseposy - ovalHeight / 2;
+		
+		//piirrellään textarealle sopiva ellipsi
+		drawEllipse(context, ovalposx, ovalposy, ovalWidth, ovalHeight); 
+		
+		//putkautetaan textarea canvasin päälle
+		canvasHolder.appendChild(textarea).focus();
+
+		//Tallenna textarean indexi tauluun
+		var nodeList = Array.prototype.slice.call( document.getElementsByTagName("TEXTAREA"));
+		var textareaIndex = nodeList.indexOf( textarea );
+		var arr = [];
+			arr["name"],
+			arr["x"] = textarea.offsetLeft,
+			arr["y"] = textarea.offsetTop,
+			arr["w"] = ovalWidth,
+			arr["h"] = ovalHeight,
+			arr["ovalx"] = ovalposx,
+			arr["ovaly"] = ovalposy,
+			arr["linecoord"],
+			arr["tobubble"],
+		textareas[textareaIndex] = arr;
+		console.log(textareas);
+		//putkautetaan ikonit kuplan siirtämiselle ja poistamiselle
+		drawIcons(textareaIndex);
+		
+		var cntr= 0; //laskurimuuttuja onkeydown ja -pressin toistuvuuden vuoksi
+		
+		//Tarkastellaan mitä näppäimiä painellaan ja tulostetaan ne
+		//koko ajan kutsuen drawEllipseä jotta pallero muokkautuu tekstin mukaan
+		textarea.onkeydown = textarea.onkeypress = function(event) { 
+			if(textareaIndex === 0) {
+				fontUsed=bossfont;
+				context.font = "bold "+fontUsed+"px Arial";
+				textarea.style.font = hidden.style.font = context.font;
+			}
+			else {
+				fontUsed=perusfont;
+				context.font = fontUsed+"px Arial";
+				textarea.style.font = hidden.style.font = context.font;
+			}
+			var beforeW = textarea.clientWidth;
+			var beforeH = textarea.clientHeight;
+
+			setTimeout(function() {
+				
+				cntr++;
+				
+				//counttericheckki tähän? ai niin mutta vain toinen onkey tukee entereitä ja backspaceja
+				
+
+				var widthDiff = textarea.clientWidth - beforeW;
+				var heightDiff = textarea.clientHeight - beforeH;
+				
+				hidden.innerHTML=textarea.value;
+				
+				if(event.keyCode == 13) 
+				hidden.innerHTML+="&nbsp;"; //merkki tyhjälle riville jotta pituus muuttuu heti
+				
+				if(hidden.clientWidth === hiddenMaxWidth)
+				hidden.innerHTML+="<br/> &nbsp;";
+				
+				if(hidden.clientHeight <= hiddenMaxHeight) {
+					textarea.style.width = hidden.offsetWidth + 5+"px"; //eri selaimilla eri pikselipelleilyt
+					textarea.style.height = hidden.offsetHeight+"px";
+					textarea.style.left = (textarea.offsetLeft - (widthDiff / 2))+"px"; //keskitetään textarea palleron keskelle
+					
+					var icons = document.querySelectorAll('[data-index="'+textareaIndex+'"]');
+					icons[0].style.left = textarea.offsetLeft + textarea.offsetWidth - 14+"px";
+					icons[1].style.left = icons[0].offsetLeft - 19+"px";
+					
+					//piirrellään textarealle sopiva ellipsi
+					//width arvolle sopivasti paddingia reunoilla, samaten heightille!
+					if((cntr % 2) == 0) { //jakojäännös koska keydownin ja keypressin vuoksi kutsuu kahdesti ja tulee jännä bugi ellipsin piirtoon. en käytä keyuppia koska näillä toimii sulavammin ja helpommin, vaikka tämä onkin vähän purkkaratkaisu. anteeksi.
+						if(textarea.clientWidth > 70) {
+							
+							//context.clearRect( textareas[textareaIndex]["ovalx"] , textareas[textareaIndex]["ovaly"] , textareas[textareaIndex]["w"], textareas[textareaIndex]["h"]);
+							
+							var x= textarea.offsetLeft - (ovalXPadding / 2); 
+							var y = textarea.offsetTop - (ovalYPadding / 2);
+							ovalWidth = textarea.clientWidth + ovalXPadding; 
+							ovalHeight = textarea.clientHeight + ovalYPadding;
+							
+							textareas[textareaIndex]["x"] = textarea.offsetLeft,
+							textareas[textareaIndex]["y"] = textarea.offsetTop,
+							textareas[textareaIndex]["w"] = ovalWidth,
+							textareas[textareaIndex]["h"] = ovalHeight,
+							textareas[textareaIndex]["ovalx"] = x,
+							textareas[textareaIndex]["ovaly"] = y;
+							
+							//kutsutaan canvasin puhdistus ja callbackina settien uusiksi piirtäminen
+							clearCanvas(canvas.width, canvas.height, drawAll);
+							
+							//ellipsi muuttaa vähän muotoaan, hienosäädä arvoja tässä alla
+							//ovalposx = textarea.offsetLeft - (ovalXPadding / 2); 
+							//drawEllipse(context, ovalposx, textareas[textareaIndex]["ovaly"], ovalWidth, ovalHeight); 
+						}
+						if(beforeH != textarea.clientHeight) { //eli jos muutos textarean korkeudessa
+							console.log("KORKEUSMUUTOS");
+							
+							//otetaan borderit huomioon
+							//context.clearRect ( textareas[textareaIndex]["ovalx"] - 1, textareas[textareaIndex]["ovaly"] , textareas[textareaIndex]["w"] + 2, textareas[textareaIndex]["h"] +1);
+
+							var x= textarea.offsetLeft - (ovalXPadding / 2);
+							var y = textarea.offsetTop  - (ovalYPadding / 2);
+							ovalWidth = textarea.clientWidth + ovalXPadding;
+							ovalHeight = textarea.clientHeight + ovalYPadding;
+							
+							textareas[textareaIndex]["x"] = textarea.offsetLeft,
+							textareas[textareaIndex]["y"] = textarea.offsetTop,
+							textareas[textareaIndex]["w"] = ovalWidth,
+							textareas[textareaIndex]["h"] = ovalHeight,
+							textareas[textareaIndex]["ovalx"] = x,
+							textareas[textareaIndex]["ovaly"] = y;
+							
+							//kutsutaan canvasin puhdistus ja callbackina settien uusiksi piirtäminen
+							clearCanvas(canvas.width, canvas.height, drawAll);
+							
+							//ellipsi muuttaa vähän muotoaan, hienosäädä arvoja tässä alla
+							//ovalposx = textarea.offsetLeft - (ovalXPadding / 2); 
+							//ovalposy = textarea.offsetTop - lineHeight; //y lisääntyy luonnollisesti rivivälin verran
+
+							
+							//drawEllipse(context, x, y, ovalWidth, ovalHeight); 
+						}
+					}
+				}
+				else {
+				
+				}
+			}, 1); //settimeoutilla ja millisekunnin viiveellä saadaan textarea.value 
+			
+			
+		}
+		
+		//Kun fokus lähtee textarealta, laitetaan muuttunut xy arvo tauluun
+		
+		textarea.onblur = function(event) {
+			var index = Array.prototype.slice.call( document.getElementsByTagName("TEXTAREA")).indexOf(textarea);
+			var arr=[];
+				arr["name"] = textarea.value,
+				arr["x"] = textareas[index]["x"],
+				arr["y"] = textareas[index]["y"],
+				arr["ovalx"] = textareas[index]["ovalx"],
+				arr["ovaly"] = textareas[index]["ovaly"],
+				arr["w"] = textareas[index]["w"],
+				arr["h"] = textareas[index]["h"],
+				arr["linecoord"] = textareas[index]["linecoord"];
+			textareas[index] = arr;	//korvataan vanhat tiedot uusilla
+		}
+	}
+}
+</script>
+
+</head>
+<body>
+<div id="container" class="clearfix">
+	<div id="canvasHolder">
+		<canvas id="tabula">
+		</canvas>
+	</div>
+	<div id="uploadRightBox">
+		<form id="mapSaveForm" >
+			<div id="saveMsg"></div>
+			<input type="button" id="saveMap" class="button saveB" value="Tallenna ajatuskartta"/>
+			<input type="button" id="clearMap" class="button emptyB" value="Tyhjennä ajatuskartta"/>
+			<br/><br/>
+			<a class="backLink" href="index.html">Takaisin</a>
+		</form>
+		<div id="help">
+			<p style="font-weight:bold; color:#043CA0;">Ohje</p>
+			<p>Luo ajatuskupla painamalla mitä tahansa kohtaa vasemmalla rajatulla alueella (kanvaasilla). Ensimmäinen ajatuskupla on ajatuskartan otsikko.</p>
+			<p>Voit muodostaa ajatuskuplien välille suhteita vetämällä hiiren vasen nappi pohjassa ajatuskuplasta toiseen.</p>
+			<p>Tällä hetkellä ajatuskuplia ei voi siirrellä tai poistaa yksitellen, mutta se ominaisuus on tulossa! Sivun oikeassa ylälaidasta löytyy napit ajatuskartan tallennukselle ja tyhjentämiselle.</p>
+		</div>
+		<div id="hiddenBox"></div>
+	</div>
+</div>
+</body>
+</html>

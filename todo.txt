@@ -1,0 +1,29 @@
+
+- tuunaile ulkoasua (palleroiden taustaväri vähä sinertäväksi ja border
+- tee dokumentaatio
+- olio-pohjaiseksi!
+- tee ajatuskartan muokkaussivu, ja toteuta oliopohjaisella JS:llä! hyvä testata pienesti olioo
+
+BUGIT
+
+
+##############
+BOSSIPALLOLLA ON PALJON ONGELMIAAA
+#############
+    - jos levenee niin heittää ihan päin vittua :D y-arvo feilaa ovaalipiirtämisessä
+	
+	- pyyhkiminen toimii kehnosti, ja uudelleen piirtäminen jos muuttaa korkeutta ja leveyttä taas
+	
+	-KORKEUSMUUTOS EI KATSO JOS PIENENEE, vasta kun alkaa kirjottaa
+	
+	- MOZILLALLA TEXTAREA TEMPPUILEE NIINKUIN CHROMELLA BOSSIN KANSSA
+
+ - viivakoordinaatit tallentuu textarean xy, menee viivoja piirrellessä sököksi
+
+ - ei tallenna new linejä !!!
+ 
+- laita arkku.nettiin testattavaks ja mielipiteitä keräämään!
+
+- kehitä sillä välin kartan muokkaus ja poisto :)
+
+- entä palleron siirtely? tai palleron poisto? hmmh.

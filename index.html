@@ -1,0 +1,203 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" type="text/css" href="include/style.css">
+
+<script type="text/javascript">
+
+if(typeof sessionStorage.userid === "undefined") {
+	window.location="login.html";
+}
+
+var canvas, context, perusfont, bossfont; //julkiset muuttujat
+
+window.onload = function initCanvas() { //kutsutaan kun canvas elementti renderöity
+	getMaps(sessionStorage.userid); //ladataan ajatuskarttalistaus
+	
+	canvas = document.getElementById("tabula");
+	canvas.width = 1000;
+	canvas.height = 800;
+	context = canvas.getContext("2d");
+	perusfont = 20;
+	bossfont = 24;
+	context.font = perusfont+"px Arial";
+}
+
+function clearCanvas() {
+	// Store the current transformation matrix
+	context.save();
+
+	// Use the identity matrix while clearing the canvas
+	context.setTransform(1, 0, 0, 1, 0, 0);
+	context.clearRect(0, 0, canvas.width, canvas.height);
+
+	// Restore the transform
+	context.restore();
+}
+
+var http = null;
+if (window.XMLHttpRequest) {
+    http = new XMLHttpRequest();
+} else {
+    http = new ActiveXObject("Microsoft.XMLHTTP");
+}
+
+function getMaps(userid) {
+	var urli = "include/backend.php?userid=" + userid;
+
+    http.onreadystatechange = function () { 
+		if (http.readyState == 4 && http.status == 200) {
+			var karttalista = eval(http.responseText);
+			if(karttalista) { 
+				//Listataan ajatuskarttojen nimet allekkain
+				for(var i=0;i<karttalista.length;i++) {
+					document.getElementById("mapList").innerHTML+='<a href="#" id="map'+ karttalista[i].mapid +'" '
+					+'onclick="haeAjatukset('+ karttalista[i].mapid +')" data-x="'+ karttalista[i].x +'" ' 
+					+'data-y="'+ karttalista[i].y +'" data-linecoord="'+ karttalista[i].linecoord +'" >'
+					+ karttalista[i].name +'</a><br/>';
+				}
+			}
+		}
+		else {
+			//document.getElementById("mapList").innerHTML='<p style="color:red;">Jotain meni vikaan!</p>';
+		}
+	}
+    http.open("GET", urli, true);
+    http.send(null);
+}
+
+
+
+	
+function haeAjatukset(mapid) {
+	clearCanvas();
+	var mapname="",
+	mapx=0,
+	mapy=0
+	linecoord="";
+	
+	 //tyhjennetään canvas aina kun halutaan toisen kartan tiedot
+	var map = document.getElementById("map"+mapid);
+    mapname = map.innerHTML; //asetetaan ajatuskartan nimi
+	mapx =  map.getAttribute('data-x'); //IE ei tue DATA-SETTEJÄ
+	mapy = map.getAttribute('data-y'); 
+	linecoord = (typeof map.getAttribute('data-linecoord') != 'undefined') ? map.getAttribute('data-linecoord') : "" ;
+
+    var urli = "include/backend.php?mapid=" + mapid;
+
+    http.onreadystatechange = function kasitteleKarttaSisalto() {
+		if (http.readyState == 4 && http.status == 200) { //onnistunut käsittely
+			//käydään läpi ajatukset
+			var ajatukset = eval(http.responseText);
+
+			
+			//JOS ajatuskartan otsikolla linecoord, niin pura osiin ja piirrä
+			//ensin jaa | merkillä, sitten xy-arvot - merkillä
+			if(linecoord != "") {
+				var pairSets = linecoord.split("|");
+				for (var i=0;i<pairSets.length;i++) {
+					var values = pairSets[i].split("-");
+					context.beginPath();
+					context.moveTo(mapx, mapy);	
+					context.lineTo(values[0],values[1]);
+					context.stroke();
+				}		
+			}
+			
+			//Yhh sisäkkäisiä for-looppeja :I olioksiiii!
+			
+			for (var i=0;i<ajatukset.length;i++) { 	//piirretään ensin suhdeviivat
+				
+				if(ajatukset[i].linecoord.length > 0) {
+					context.beginPath();
+					for (var c=0;c<ajatukset[i].linecoord.length;c++) {
+						context.moveTo(ajatukset[i].x,ajatukset[i].y);	
+						context.lineTo(ajatukset[i].linecoord[c].x,ajatukset[i].linecoord[c].y);
+					}
+					context.stroke();
+				}
+			} 
+			for (var i=0;i<ajatukset.length;i++) {  //seuraavaksi pallerot, joiden fillStyle white peittää viivat alta		
+				//PIIRRETÄÄN OVAALI
+				context.font = perusfont+"px Arial";
+				var textWidth = context.measureText(ajatukset[i].name).width, //tekstin leveys
+					textHeight = 1.25*perusfont,
+					ovalWidth = textWidth + 50,
+					ovalHeight = textHeight + 50,
+					ovalposx = ajatukset[i].x - 25,
+					ovalposy = ajatukset[i].y - ovalHeight / 2;
+				
+				if(drawEllipse(context, ovalposx, ovalposy, ovalWidth, ovalHeight)) { //sitten teksti päälle
+					context.beginPath();
+					context.fillStyle = "#000000";
+					context.fillText(ajatukset[i].name,ajatukset[i].x,ajatukset[i].y); 
+				}
+			}
+			//PIIRRETÄÄN AJATUSKARTAN OTSIKKO
+			context.font = "bold "+bossfont+"px Arial";
+			var titleWidth = context.measureText(mapname).width, //tekstin leveys
+				titleHeight = 1.25*bossfont,
+				titleWidth = titleWidth + 50,
+				titleHeight = titleHeight + 50,
+				titleposx = mapx - 25,
+				titleposy = mapy - titleHeight / 2;
+			
+			 if(drawEllipse(context, titleposx, titleposy, titleWidth, titleHeight)) {
+				context.beginPath();
+				context.fillStyle = "#000000";
+				context.fillText(mapname,mapx,mapy); 
+			} 
+		}
+	}
+		
+	
+    http.open("GET", urli, true);
+    http.send(null);  
+}
+
+function drawEllipse(ctx, x, y, w, h) { //kiitokset tänne http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
+	
+	var kappa = .5522848,
+	ox = (w / 2) * kappa, // control point offset horizontal
+	oy = (h / 2) * kappa, // control point offset vertical
+	xe = x + w,           // x-end
+	ye = y + h,           // y-end
+	xm = x + w / 2,       // x-middle
+	ym = y + h / 2;       // y-middle
+
+	ctx.beginPath();
+	ctx.moveTo(x, ym);
+	ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
+	ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
+	ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
+	ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+	//ctx.closePath(); // not used correctly, see comments (use to close off open path)
+	ctx.fillStyle = "white";
+	ctx.fill();
+	ctx.stroke();
+	
+	return true;
+}
+
+</script>
+
+</head>
+<body>
+<div id="container" class="clearfix">
+
+	<div id="indexLeftBox">
+		<h1>Ajatuskarttasovellus</h1>
+		<a id="infolink" href="info.html">Tietoa sovelluksesta</a>
+		<h5 class="errorMsg">(Huom. Chromella toimii parhaiten)</h5>
+		<a href="uptesti.html" class="button">Luo uusi ajatuskartta</a>
+		<div id="mapList">
+			<p>Valitse ajatuskartta</p>
+		</div>
+	</div>
+
+	<canvas id="tabula">
+	</canvas>
+</div>
+</body>
+</html>

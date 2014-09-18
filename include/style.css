@@ -1,0 +1,152 @@
+/* yleiset */
+body {
+font-family: Helvetica, sans-serif;
+}
+h1 {
+	color:#2E2E2E;
+}
+a:link, a:visited, a:hover, a:active {
+	color:#043CA0;
+	text-decoration:none;
+}
+.clearfix:after{ 
+	content: ""; 
+	display: table;
+	clear: both; 
+}
+.button {
+	cursor:pointer;
+	display:inline-block;
+	font-size:18px;
+	text-decoration: none;
+	color: #333333 !important;
+	padding: 16px 50px;
+	border-top: 1px solid #CCCCCC;
+	border-right: 1px solid #333333;
+	border-bottom: 1px solid #333333;
+	border-left: 1px solid #CCCCCC;
+	
+	background: -webkit-linear-gradient(#E6E6E6, #BDBDBD); /* For Safari 5.1 to 6.0 */
+	background: -o-linear-gradient(#E6E6E6, #BDBDBD); /* For Opera 11.1 to 12.0 */
+	background: -moz-linear-gradient(#E6E6E6, #BDBDBD); /* For Firefox 3.6 to 15 */
+	background: linear-gradient(#E6E6E6, #BDBDBD); /* Standard syntax */
+}
+.button:hover {
+	color:#0B2161;
+}
+#tabula { border:1px solid #000000; float:left; }
+
+.errorMsg { color:red; }
+a.backLink:hover{ font-weight:bold; }
+/* login.html */
+#loginForm {width: 340px;}
+#loginForm table { width:100%; }
+#loginForm input[type=text], #loginForm input[type=password]{ width:100%; }
+
+/* index.html */
+#infolink { font-weight:bold; color:#447CE0; display.block;}
+#infolink:hover { font-weight:bold; color:#043CA0;}
+
+#indexLeftBox {
+	float:left;
+	min-width:25%;
+	max-width:30%;
+} 
+#mapList {
+	margin-top: 50px;
+}
+#mapList p {
+	font-weight:bold;
+	display:block;
+	padding: 16px 50px 0px 5px;
+	border-bottom: 1px solid #333333;
+	
+	background: -webkit-linear-gradient(#FFF, #D8D8D8); /* For Safari 5.1 to 6.0 */
+	background: -o-linear-gradient(#FFF, #D8D8D8); /* For Opera 11.1 to 12.0 */
+	background: -moz-linear-gradient(#FFF, #D8D8D8); /* For Firefox 3.6 to 15 */
+	background: linear-gradient(#FFF, #D8D8D8); /* Standard syntax */
+}
+#mapList a {
+	color:#043CA0;
+}
+#mapList a:hover {
+	font-weight:bold;
+}
+
+/* uptesti.html */
+#canvasHolder { position:relative; float:left; width:1010px;}
+#canvasHolder #tabula { float:none;}
+
+#canvasHolder textarea { 
+	z-index:999;
+	position:absolute;
+	overflow-y:hidden;
+	padding:0; 
+	margin:0;
+	border:thin solid #cecece;
+	resize:none;  <!-- koon muuttelumahdollisuus pois -->
+}
+#canvasHolder textarea:focus {
+	outline:none; <!-- poistaa glowin inputin bordereista -->
+}
+
+#uploadRightBox { float:left; margin-left:120px; max-width: 30%;padding:10px 0;}
+
+#mapSaveForm { display:block; }
+.saveB {
+	background: -webkit-linear-gradient(#A9F5A9, #01DF01); /* For Safari 5.1 to 6.0 */
+	background: -o-linear-gradient(#A9F5A9, #01DF01); /* For Opera 11.1 to 12.0 */
+	background: -moz-linear-gradient(#A9F5A9, #01DF01); /* For Firefox 3.6 to 15 */
+	background: linear-gradient(#A9F5A9, #01DF01); /* Standard syntax */
+}
+.emptyB {
+background: -webkit-linear-gradient(#FF7A7A, #FF4949); /* For Safari 5.1 to 6.0 */
+	background: -o-linear-gradient(#FF7A7A, #FF4949); /* For Opera 11.1 to 12.0 */
+	background: -moz-linear-gradient(#FF7A7A, #FF4949); /* For Firefox 3.6 to 15 */
+	background: linear-gradient(#FF7A7A, #FF4949); /* Standard syntax */
+}
+
+#help { margin-top:60px; border:1px solid #043CA0; padding:0 8px; color:#02225C;}
+
+#hiddenBox { 
+	visibility:hidden;
+	float:right; 
+	padding:0; margin:0;
+	white-space:pre-wrap; /* new linet huomioon */
+	word-wrap:break-word; /*teksti seuraavalle riville maxwidthin tullessa vastaan*/
+}
+
+.floaticon {
+	z-index:9999;
+	position:absolute;
+}
+
+/* info.html */
+#infoContainer { 
+	padding:0px 20px 20px 20px;
+	width: 30%;
+	margin-left:auto; 
+	margin-right:auto; 
+	border:1px solid #043CA0; 
+	text-align:center;
+}
+#infoContainer h1 a{ color:#2E2E2E; }
+#infoContainer #infomenu {
+	display:inline-block;
+}
+#infoContainer #infomenu a { 
+	float:left;
+	padding:0 10px;
+}
+#infoContainer #infomenu a.activeLink { font-weight:bold; }
+#infoContainer #infomenu a:hover {
+	font-weight:bold;
+	color:#3472E2;
+}
+#infotext .active{
+	display:block;
+}
+#infotext .passive{
+	display:none;
+}
+#infotext ul { display:inline-block; margin-left:30%; text-align:left; width:60%;}

@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" type="text/css" href="include/style.css">
+
+<script type="text/javascript">
+//Kokeilin data-actioneja event klikkailussa, ja oliota myös.
+//Tämä antoi suuntaa http://javascript.info/tutorial/event-delegation
+window.onload = function init() {
+	function infoMenu(elem) {
+		var textbox = document.getElementById("infotext");
+		var elements = textbox.getElementsByTagName("div"); //haetaan tekstisisällöt
+			
+		this.showText = function(id) { 
+			for(var i=0;i<elements.length;i++) {
+				if(elements[i].id === id)
+					elements[i].className = "active";
+				else
+					elements[i].className = "passive";
+			}
+		}
+
+		var self = this; //self muuttujaan tämä olio funktioiden kutsumista varten
+		elem.onclick = function(e) {
+			
+			//Haetaan painettu elementti muuttujaan. srcElement IE:tä varten, target muita selaimia varten
+			var target = e && e.target || event.srcElement; 
+
+			//Asetetaan eri tyyli aktiiviselle linkille
+			var elements = document.getElementById("infomenu").getElementsByTagName("a");
+			for(var i=0;i<elements.length;i++) {
+				if(elements[i].text === target.text)
+					elements[i].className = "activeLink";
+				else
+					elements[i].className = "";
+			}
+			//Katsotaan mikä action kyseessä ja kutsutaan sitä
+			var action = target.getAttribute('data-action');	
+			if (action) {
+				self.showText(action);
+			}
+		}
+	}
+	
+	new infoMenu(document.getElementById("infomenu"));
+}
+</script>
+</head>
+<body>
+<div id="container" class="clearfix">
+	<div id="infoContainer">
+		<h1><a href="index.html">Ajatuskarttasovellus</a></h1>
+		<div id="infomenu" class="clearfix">
+			<a data-action="showWhy" class="activeLink" href="#">Miksi</a>
+			<a data-action="showProblems" class="" href="#">Ongelmat</a>
+			<a data-action="showFuture" class="" href="#">Jatkokehitys</a>
+			<a href="index.html">Takaisin etusivulle</a>
+		</div>
+		<div id="infotext">
+			<div id="showWhy" class="active">
+				<p>
+					Aloin työstämään ajatuskarttasovellusta, koska halusin koodailla jotain natiivilla JavaScriptillä ilman apukirjastoja. Tunsin myös vahvan halun kopeloida PHP:llä SQL-tietokantaa, mitä en ollut pitkään aikaan harrastellut. 
+				</p>
+				<p>
+					Idea ajatuskartan toteuttamisesta tuli siitä, että heittelin mielessäni ideoita pienistä hyötysovelluksista, jotka olisivat suhteellisen helppoja ja hauskoja toteuttaa. Ajatuskartan toteutus tuntui juuri sopivalta ja mieluisalta. Minua myös kutkutti päästä näpistelemään HTML5:n canvas-elementin ominaisuuksia natiivilla JS:llä ja katsoa kuinka pitkälle sillä pääsisin. Nyt kun toteutus on lähestulkoon loppusuoralla, katson päässeeni pitkälle.
+				</p>
+			</div>
+			<div id="showFuture" class="passive">
+				<p>Voi veljet, jatkokehitystä kyllä riittää. Oleellisia toiminnallisuuksia puuttuu vielä ja useita bugeja on korjattavana. Lisäilen muutoksia tänne hiljalleen. Tässä alla lista jatkokehityskohteista:</p>
+				<ul>
+					<li>ajatuskartan poistaminen</li>
+					<li>ajatuskartan muuttaminen</li>
+					<li>Luo uusi ajatuskartta: bugit ajatuskuplien piirtämisessä</li>
+					<li>Luo uusi ajatuskartta: tekstilaatikko flippailee, varsinkin Mozillalla</li>
+					<li>Luo uusi ajatuskartta: ei tallenna rivivälejä tietokantaan</li>
+					<li>ulkoasun tuunailu</li>
+					<li>smooth, soft 'n silky animations</li>
+					<li>koko sovelluksen JavaScript-koodi oliopohjaiseksi !</li>
+					<li>ei voi tallentaa tyhjiä ajatuksia</li>
+					<li>toimivuus IE:llä ja Mozillalla</li>
+					<li>tämä info sivusto flat designillä? just to show that i can</li>
+				</ul>
+			</div>
+			<div id="showProblems" class="passive">
+				<p>Ajatuskartan toteutus sujui muuten suoraviivaisesti ja sutjakasti, lukuunottamatta tietokantapähkäilyä. En meinannut millään keksiä, miten tallentaa ajatusten väliset suhteet tietokantaan, eli miten osoitan, että jollakin ajatuksella on vaikkapa kolme aliajatusta ja että se ko. ajatus on vielä jonkin muun ajatuksen lapsiajatus. 
+				</p>
+				<p>Pallottelin pitkään ajatusten id:llä (tyyliin childId ja parentId), päätyen aina umpikujaan, kunnes keksin ajatella ns. "boxin ulkopuolelta" ja käyttää vain koordinaatteja suhteiden (eli viivojen) piirtämiselle. Tallennan siis tietokantaan ajatuksen tietoihin sen xy-koordinaatit ja jos siitä lähtee viiva, niin mihin koordinaattiin se viiva menee.
+				</p>
+				<p>HTML5:n canvas-elementille piirtely tuotti ajoittain pieniä ongelmia, jotka selvisivät googlauksella. HTML5:n huonosta (mutta hiljalleen parantuvasta) selaintuesta johtuen ajatuskarttani toimii vain uusimmilla selaimilla eikä siltikään kaikilla eri selaimilla. Chromella toimii parhaiten, Mozillalla ja IE:llä joten kuten.
+				</p>
+			</div>
+		</div>
+	</div>
+	
+</div>
+</body>
+</html>

@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" type="text/css" href="include/style.css">
+
+<script type="text/javascript">
+window.onload = function init() {
+	document.getElementById("loginForm").onsubmit = function(event) {
+		event.preventDefault();
+		//ajax kutsu käyttäjätunnusten tsekkaukselle
+		var http = null;
+
+		if (window.XMLHttpRequest) {
+			http = new XMLHttpRequest();
+		} else {
+			http = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+		
+	
+		var username = document.getElementById("username").value,
+			password = document.getElementById("password").value;
+			
+		var urli = "include/backend.php?user="+username+"&pass="+password;
+
+		http.onreadystatechange = kasitteleHTTP;
+		
+		http.open("GET", urli, true);
+		
+		http.send(null);
+	
+		function kasitteleHTTP() {
+			if (http.readyState == 4) {
+				var uData = JSON.parse(http.responseText);
+				
+				if(uData.userid !== null) {
+					sessionStorage.userid = uData.userid;
+					sessionStorage.username = uData.username;
+					
+					window.location="index.html";
+				}
+				else {
+					document.getElementById("errorMsg").innerHTML = "Antamasi käyttäjätunnus tai salasana ei täsmännyt!";
+				}
+			}
+		}	
+	}
+}
+</script>
+<style type="text/css">
+	#errorMsg { color:red; }
+</style>
+</head>
+<body>
+<h1>Ajatuskarttasovellus</h1>
+<div id="errorMsg"></div>
+<form id="loginForm">
+	<table>
+		<tr>
+			<td><label for="username">Käyttäjätunnus: </label></td>
+			<td><input type="text" id="username" /></td>
+		</tr>
+		<tr>
+			<td><label for="password" />Salasana: </label></td>
+			<td><input type="password" id="password" /> </td>
+		</tr> 
+		<tr>
+			<td colspan="2"><input type="submit" id="logButt" value="Kirjaudu"/></td>
+		</tr>
+	</table>	
+</form>
+	
+</body>
+</html>
